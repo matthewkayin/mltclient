@@ -2,7 +2,7 @@ CXX = g++
 CXXFLAGS = -Wall -std=c++11
 DBGFLAGS = -g
 IFLAGS = -I include
-LFLAGS =
+LFLAGS = -lncurses
 TARGET = fren
 SRCSDIR = src
 OBJSDIR = obj
