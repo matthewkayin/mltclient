@@ -1,6 +1,8 @@
 #include "encode.hpp"
+#include "serial.hpp"
 #include <ncurses.h>
 #include <iostream>
+#include <cstring>
 #include <string>
 #include <cmath>
 #include <vector>
@@ -9,6 +11,7 @@
 void render_all(std::string in_progress, int cursor_x, int cursor_y, std::vector<std::string>* chatlog, int scroll_offset);
 void render_separator();
 void render_textbox(std::string in_progress);
+void render_chatlog(std::vector<std::string>* chatlog, int scroll_offset);
 
 // Functions to act as global variables
 int textbox_height(); // returns textbox height needed for 140 chars
@@ -19,18 +22,25 @@ std::string current_time();
 
 int get_cursor_index(int cursor_x, int cursor_y);
 
-void render_chatlog(std::vector<std::string>* chatlog, int scroll_offset);
-void append_chatlog(std::vector<std::string>* chatlog, std::string message);
+void update(std::vector<std::string>* chatlog);
+void sysmessage(std::vector<std::string>* chatlog, std::string message);
 
-int main(){
+int main(int argc, char* argv[]){
+
+    bool debug = false;
+
+    for(int i = 0; i < argc; i++){
+
+        if(std::strcmp(argv[i], "--debug")){
+
+            debug = true;
+        }
+    }
 
     initscr();
-    cbreak();
+    halfdelay(1);
     noecho();
     keypad(stdscr, TRUE);
-
-    clear();
-    render_separator();
 
     std::vector<std::string> chatlog;
     std::string in_progress = "";
@@ -39,13 +49,39 @@ int main(){
     int cursor_y = separator_point() + 1;
     int scroll_offset = 0;
 
+    sysmessage(&chatlog, "Welcome to the Modulated Light Transceiver Client!");
+    sysmessage(&chatlog, "Type \"/exit\" to exit");
+    sysmessage(&chatlog, "Attempting to find MLT...");
+
+    Serial arduino_out = Serial();
+    std::string message = "";
+    bool success = arduino_out.open(&message);
+    sysmessage(&chatlog, message);
+
+    if(!success && !debug){
+
+        sysmessage(&chatlog, "Program will now exit.");
+        render_all(in_progress, cursor_x, cursor_y, &chatlog, scroll_offset);
+        cbreak(); // prevent time char input
+        getch();
+
+        endwin();
+        return 0;
+    }
+
+    render_all(in_progress, cursor_x, cursor_y, &chatlog, scroll_offset);
+
     while(input != "/exit"){
 
         // handle input here
 
         bool render = false;
         int key = getch();
-        if(key == KEY_RESIZE){
+        if(key == ERR){
+
+            // nothing handled yet
+
+        }else if(key == KEY_RESIZE){
 
             render = true;
 
@@ -129,6 +165,8 @@ int main(){
 
             render_all(in_progress, cursor_x, cursor_y, &chatlog, scroll_offset);
         }
+
+        update(&chatlog); // we always call this so that we always update at a regular rate
     }
 
     endwin();
@@ -222,4 +260,18 @@ void render_chatlog(std::vector<std::string>* chatlog, int scroll_offset){
         std::string message = chatlog->at(i);
         mvaddstr(i, 0, message.c_str());
     }
+}
+
+void update(std::vector<std::string>* chatlog){
+
+    // This function will be at least every tenth of a second
+    // Buuut it may be called much more than that, it will be called with each user event
+    // So when writing code for it do not write anything that would be performance inhibitive
+    // You need to check elapsed time in between certain checks here
+}
+
+void sysmessage(std::vector<std::string>* chatlog, std::string message){
+
+    std::string to_push = "--- " + message + " ---";
+    chatlog->push_back(to_push);
 }

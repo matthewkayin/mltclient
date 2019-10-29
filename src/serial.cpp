@@ -5,11 +5,12 @@ Serial::Serial(){
     opened = false;
 }
 
-void Serial::open(){
+bool Serial::open(std::string* message){
 
     if(opened){
 
-        std::cout << "Error! Already opened serial connection!" << std::endl;
+        *message = "Error! Already opened serial connection!";
+        return false;
     }
 
     std::string base_location_name = "";
@@ -37,20 +38,20 @@ void Serial::open(){
 
     if(location == ""){
 
-        std::cout << "Error! Could not detect serial device!" << std::endl;
-        return;
+        *message = "Error! Could not detect serial device!";
+        return false;
 
     }else{
 
-        std::cout << "Device detected at " << location << std::endl;
+        *message = "Device detected at " + location;
     }
 
     #ifdef _WIN32
         serial_out = CreateFile(("\\\\.\\" + location).c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
         if(serial_out == INVALID_HANDLE_VALUE){
 
-            std::cout << "Error opening serial connection" << std::endl;
-            return;
+            *message = "but there was an error opening serial connection";
+            return false;
         }
         serial_params = {0};
         serial_params.DCBlength = sizeof(serial_params);
@@ -65,6 +66,7 @@ void Serial::open(){
     #endif
 
     opened = true;
+    return true;
 }
 
 void Serial::close(){

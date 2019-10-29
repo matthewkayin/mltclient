@@ -14,7 +14,7 @@ class Serial{
 
     public:
         Serial();
-        void open();
+        bool open(std::string* message);
         void close();
         void write(char* data, int no_bytes);
     private:
