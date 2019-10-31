@@ -43,7 +43,7 @@ bool Serial::open(std::string* message){
 
     }else{
 
-        *message = "Device detected at " + location;
+        *message = "Success! Device detected at " + location;
     }
 
     #ifdef _WIN32

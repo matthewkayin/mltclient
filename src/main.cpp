@@ -28,6 +28,7 @@ std::string current_time();
 int get_cursor_index(int cursor_x, int cursor_y);
 
 void update(std::vector<std::string>* chatlog);
+bool attempt_connect(std::vector<std::string>* chatlog, Serial* arduino_out);
 void sysmessage(std::vector<std::string>* chatlog, std::string message);
 
 int main(int argc, char* argv[]){
@@ -61,29 +62,13 @@ int main(int argc, char* argv[]){
         sysmessage(&chatlog, "Debug mode is on");
     }
 
-    sysmessage(&chatlog, "Attempting to find MLT...");
-
-    Serial arduino_out = Serial();
-    std::string message = "";
-    bool success = arduino_out.open(&message);
-    sysmessage(&chatlog, message);
-
-    if(!success && !debug){
-
-        sysmessage(&chatlog, "Program will now exit.");
-        render_all(in_progress, cursor_x, cursor_y, &chatlog, scroll_offset);
-        cbreak(); // prevent time char input
-        getch();
-
-        endwin();
-        return 0;
-    }
+    bool connected = false;
+    Serial arduino_out;
+    connected = attempt_connect(&chatlog, &arduino_out);
 
     render_all(in_progress, cursor_x, cursor_y, &chatlog, scroll_offset);
 
     while(input != "/exit"){
-
-        // handle input here
 
         int refresh = 0;
         const int ALL = 1;
@@ -174,6 +159,22 @@ int main(int argc, char* argv[]){
             }
         }
 
+        // handle input here
+        if(input == "/exit"){
+
+            break;
+
+        }else if(input == "/connect"){
+
+            connected = attempt_connect(&chatlog, &arduino_out);
+        }
+
+        // clear input buffer
+        input = "";
+
+        update(&chatlog); // we always call this so that we always update at a regular rate
+
+        // always render last
         if(refresh == ALL){
 
             render_all(in_progress, cursor_x, cursor_y, &chatlog, scroll_offset);
@@ -188,8 +189,6 @@ int main(int argc, char* argv[]){
 
             render_chatlog(&chatlog, scroll_offset);
         }
-
-        update(&chatlog); // we always call this so that we always update at a regular rate
     }
 
     endwin();
@@ -308,6 +307,21 @@ void update(std::vector<std::string>* chatlog){
     // Buuut it may be called much more than that, it will be called with each user event
     // So when writing code for it do not write anything that would be performance inhibitive
     // You need to check elapsed time in between certain checks here
+}
+
+bool attempt_connect(std::vector<std::string>* chatlog, Serial* arduino_out){
+
+    sysmessage(chatlog, "Attempting to find MLT...");
+    *arduino_out = Serial();
+    std::string message = "";
+    bool success = arduino_out->open(&message);
+    sysmessage(chatlog, message);
+    if(!success){
+
+        sysmessage(chatlog, "Ensure your device is connected and type \"/connect\" to try again.");
+    }
+
+    return success;
 }
 
 void sysmessage(std::vector<std::string>* chatlog, std::string message){
