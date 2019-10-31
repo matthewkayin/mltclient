@@ -15,6 +15,7 @@
 
 void render_all(std::string in_progress, int cursor_x, int cursor_y, std::vector<std::string>* chatlog, int scroll_offset);
 void render_separator();
+void clear_textbox();
 void render_textbox(std::string in_progress);
 void render_chatlog(std::vector<std::string>* chatlog, int scroll_offset);
 
@@ -80,7 +81,10 @@ int main(int argc, char* argv[]){
 
         // handle input here
 
-        bool render = false;
+        int refresh = 0;
+        const int ALL = 1;
+        const int CHATBOX_ONLY = 2;
+        const int TEXTBOX_ONLY = 3;
         int key = getch();
         if(key == ERR){
 
@@ -88,7 +92,7 @@ int main(int argc, char* argv[]){
 
         }else if(key == KEY_RESIZE){
 
-            render = true;
+            refresh = ALL;
 
         }else if(key == 10){
 
@@ -104,7 +108,7 @@ int main(int argc, char* argv[]){
                 std::string prefix = "[" + current_time() + "] You: ";
                 chatlog.push_back(prefix + input);
             }
-            render = true;
+            refresh = ALL;
 
         }else if(key == 8 || key == 127){
 
@@ -119,7 +123,7 @@ int main(int argc, char* argv[]){
                     cursor_x = COLS - 1;
                     cursor_y--;
                 }
-                render = true;
+                refresh = TEXTBOX_ONLY;
             }
 
         }else if(key == KEY_LEFT){
@@ -162,13 +166,23 @@ int main(int argc, char* argv[]){
                     cursor_x = 0;
                     cursor_y++;
                 }
-                render = true;
+                refresh = TEXTBOX_ONLY;
             }
         }
 
-        if(render){
+        if(refresh == ALL){
 
             render_all(in_progress, cursor_x, cursor_y, &chatlog, scroll_offset);
+
+        }else if(refresh == TEXTBOX_ONLY){
+
+            clear_textbox();
+            render_textbox(in_progress);
+            move(cursor_y, cursor_x);
+
+        }else if(refresh == CHATBOX_ONLY){
+
+            render_chatlog(&chatlog, scroll_offset);
         }
 
         update(&chatlog); // we always call this so that we always update at a regular rate
@@ -194,6 +208,23 @@ void render_separator(){
     for(int i = 0; i < COLS; i++){
 
         mvaddch(row, i, dash);
+    }
+}
+
+void clear_textbox(){
+
+    int cx = 0;
+    int cy = separator_point() + 1;
+    for(int i = 0; i < 140; i++){
+
+        mvaddch(cy, cx, ' ');
+
+        cx++;
+        if(cx >= COLS){
+
+            cx = 0;
+            cy++;
+        }
     }
 }
 
