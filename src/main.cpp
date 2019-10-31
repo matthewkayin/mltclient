@@ -1,6 +1,11 @@
+#ifdef _WIN32
+    #include <ncurses/ncurses.h>
+    #undef KEY_EVENT
+#else
+    #include <ncurses.h>
+#endif
 #include "encode.hpp"
 #include "serial.hpp"
-#include <ncurses.h>
 #include <iostream>
 #include <cstring>
 #include <string>
