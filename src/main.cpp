@@ -6,7 +6,6 @@
 #endif
 #include "encode.hpp"
 #include "serial.hpp"
-#include <iostream>
 #include <cstring>
 #include <string>
 #include <cmath>
@@ -37,7 +36,7 @@ int main(int argc, char* argv[]){
 
     for(int i = 0; i < argc; i++){
 
-        if(std::strcmp(argv[i], "--debug")){
+        if(std::strcmp(argv[i], "--debug") == 0){
 
             debug = true;
         }
@@ -57,6 +56,11 @@ int main(int argc, char* argv[]){
 
     sysmessage(&chatlog, "Welcome to the Modulated Light Transceiver Client!");
     sysmessage(&chatlog, "Type \"/exit\" to exit");
+    if(debug){
+
+        sysmessage(&chatlog, "Debug mode is on");
+    }
+
     sysmessage(&chatlog, "Attempting to find MLT...");
 
     Serial arduino_out = Serial();
