@@ -58,23 +58,17 @@ char binary_to_byte(std::string bitstring){
     return (char)byte_num;
 }
 
-std::string to_segments(std::string message){
+int encode(std::string message, char* out){
 
     // First compress message as and into a c string
-    char out[4096];
-    int out_size = smaz_compress(message.c_str(), message.length(), out, sizeof(out));
+    char out_buffer[4096];
+    int out_size = smaz_compress(message.c_str(), message.length(), out_buffer, sizeof(out_buffer));
+    out = out_buffer;
 
-    // then convert each char of the string into binary and put that in an array of bitstrings
-    std::string bitstring = "";
-    for(int i = 0; i < out_size; i++){
-
-        bitstring = bitstring + byte_to_binary(out[i]);
-    }
-
-    return bitstring;
+    return out_size;
 }
 
-std::string from_segments(std::string bitstring){
+std::string decode(std::string bitstring){
 
     // First turn message into a c string
     char in[4096];

@@ -12,23 +12,24 @@
 #include <vector>
 #include <ctime>
 
+// RENDERING FUNCTIONS
 void render_all(std::string in_progress, int cursor_x, int cursor_y, std::vector<std::string>* chatlog, int scroll_offset);
 void render_separator();
 void clear_textbox();
 void render_textbox(std::string in_progress);
 void render_chatlog(std::vector<std::string>* chatlog, int scroll_offset);
 
-// Functions to act as global variables
+// FUNCTIONS THAT ACT LIKE GLOBAL VARIABLES
 int textbox_height(); // returns textbox height needed for 140 chars
-int separator_point(); // returns row to render line seperator between two windows
+int separator_point(); // returns what row to render line seperator between two windows
 int chatlog_height(); // returns chatlog height in number of rows
-int chat_segment_width();
-std::string current_time();
+std::string current_time(); // returns current time formatted in HH:MM (military time)
+int get_cursor_index(int cursor_x, int cursor_y); // gets the index of the string that the cursor is at
 
-int get_cursor_index(int cursor_x, int cursor_y);
-
+// NON-UI FUNCTIONS
 void update(std::vector<std::string>* chatlog);
 bool attempt_connect(std::vector<std::string>* chatlog, Serial* arduino_out);
+void send_message(std::vector<std::string>* chatlog, Serial* arduino_out, std::string message);
 void sysmessage(std::vector<std::string>* chatlog, std::string message);
 
 int main(int argc, char* argv[]){
@@ -92,11 +93,6 @@ int main(int argc, char* argv[]){
             render_separator();
             cursor_x = 0;
             cursor_y = separator_point() + 1;
-            if(input.at(0) != '/'){
-
-                std::string prefix = "[" + current_time() + "] You: ";
-                chatlog.push_back(prefix + input);
-            }
             refresh = ALL;
 
         }else if(key == 8 || key == 127){
@@ -167,6 +163,17 @@ int main(int argc, char* argv[]){
         }else if(input == "/connect"){
 
             connected = attempt_connect(&chatlog, &arduino_out);
+
+        }else if(input != ""){
+
+            if(connected){
+
+                send_message(&chatlog, &arduino_out, input);
+
+            }else{
+
+                sysmessage(&chatlog, "Cannot send message! Device is not connected.");
+            }
         }
 
         // clear input buffer
@@ -322,6 +329,16 @@ bool attempt_connect(std::vector<std::string>* chatlog, Serial* arduino_out){
     }
 
     return success;
+}
+
+void send_message(std::vector<std::string>* chatlog, Serial* arduino_out, std::string message){
+
+    char bitstring[4096];
+    int bitstring_length = encode(message, bitstring);
+    arduino_out->write(bitstring, bitstring_length);
+
+    std::string prefix = "[" + current_time() + "] You: ";
+    chatlog->push_back(prefix + message);
 }
 
 void sysmessage(std::vector<std::string>* chatlog, std::string message){
