@@ -47,20 +47,6 @@ bool Serial::open(std::string* message){
     }
 
     #ifdef _WIN32
-        serial_out = CreateFile(("\\\\.\\" + location).c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
-        if(serial_out == INVALID_HANDLE_VALUE){
-
-            *message = "but there was an error opening serial connection";
-            return false;
-        }
-        serial_params = {0};
-        serial_params.DCBlength = sizeof(serial_params);
-        GetCommState(serial_out, &serial_params);
-        serial_params.BaudRate = CBR_9600;
-        serial_params.ByteSize = 8;
-        serial_params.StopBits = ONESTOPBIT;
-        serial_params.Parity = NOPARITY;
-        SetCommState(serial_out, &serial_params);
     #else
         system(("stty -F " + location + " -hupcl").c_str());
     #endif
@@ -78,7 +64,6 @@ void Serial::close(){
     }
 
     #ifdef _WIN32
-        CloseHandle(serial_out);
     #else
         system(("stty -F " + location + " hupcl").c_str());
     #endif
@@ -86,19 +71,13 @@ void Serial::close(){
 
 void Serial::write(char* data, int no_bytes){
 
-    #ifdef _WIN32
-        DWORD no_bytes_to_write = sizeof(char) * no_bytes;
-        DWORD no_bytes_written = 0;
-        WriteFile(serial_out, data, no_bytes_to_write, &no_bytes_written, NULL);
-    #else
-        std::ofstream serial_out;
-        serial_out.open(location);
+    std::ofstream serial_out;
+    serial_out.open(location);
 
-        for(int i = 0; i < no_bytes; i++){
+    for(int i = 0; i < no_bytes; i++){
 
-            serial_out << data[i];
-        }
+        serial_out << data[i];
+    }
 
-        serial_out.close();
-    #endif
+    serial_out.close();
 }

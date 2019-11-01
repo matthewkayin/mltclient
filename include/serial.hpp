@@ -6,9 +6,6 @@
 #include <iostream>
 #include <string>
 #include <fstream>
-#ifdef _WIN32
-    #include <windows.h>
-#endif
 
 class Serial{
 
@@ -20,10 +17,6 @@ class Serial{
     private:
         std::string location;
         bool opened;
-        #ifdef _WIN32
-            HANDLE serial_out;
-            DCB serial_params;
-        #endif
 };
 
 #endif

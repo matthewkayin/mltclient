@@ -1,6 +1,5 @@
 #ifdef _WIN32
     #include <ncurses/ncurses.h>
-    #undef KEY_EVENT
 #else
     #include <ncurses.h>
 #endif
