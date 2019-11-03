@@ -3,6 +3,7 @@
 #else
     #include <ncurses.h>
 #endif
+#include <SDL2/SDL.h>
 #include "encode.hpp"
 #include "serial.hpp"
 #include <cstring>
@@ -28,7 +29,7 @@ int get_cursor_index(int cursor_x, int cursor_y); // gets the index of the strin
 // NON-UI FUNCTIONS
 void update(std::vector<std::string>* chatlog);
 bool attempt_connect(std::vector<std::string>* chatlog, Serial* arduino_out);
-void send_message(std::vector<std::string>* chatlog, Serial* arduino_out, std::string message);
+void send_message(std::vector<std::string>* chatlog, std::string* strobe_message, std::string message);
 void sysmessage(std::vector<std::string>* chatlog, std::string message);
 
 int main(int argc, char* argv[]){
@@ -43,6 +44,7 @@ int main(int argc, char* argv[]){
         }
     }
 
+    // init ncurses
     initscr();
     halfdelay(1);
     noecho();
@@ -55,6 +57,30 @@ int main(int argc, char* argv[]){
     int cursor_y = separator_point() + 1;
     int scroll_offset = 0;
 
+    // init sdl
+    SDL_Window* window = nullptr;
+    SDL_Renderer* renderer = nullptr;
+    std::string message;
+    std::string strobe_message = "";
+    bool sdl_close = false;
+    int strobe_r = 0;
+    int strobe_b = 0;
+    int strobe_g = 0;
+
+    bool sdl_success = !(SDL_Init(SDL_INIT_VIDEO) < 0);
+    window = SDL_CreateWindow("Strobe Window", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1024, 768, SDL_WINDOW_SHOWN);
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
+    sdl_success = sdl_success && window && renderer;
+
+    if(sdl_success){
+
+        message = "Strobe window initialized successfully";
+
+    }else{
+
+        message = "Error initializing strobe window, SDL Error: " + std::string(SDL_GetError());
+    }
+
     sysmessage(&chatlog, "Welcome to the Modulated Light Transceiver Client!");
     sysmessage(&chatlog, "Type \"/exit\" to exit");
     if(debug){
@@ -62,13 +88,34 @@ int main(int argc, char* argv[]){
         sysmessage(&chatlog, "Debug mode is on");
     }
 
+    sysmessage(&chatlog, "Initializing...");
+    sysmessage(&chatlog, message);
+
     bool connected = false;
     Serial arduino_out;
     connected = attempt_connect(&chatlog, &arduino_out);
 
     render_all(in_progress, cursor_x, cursor_y, &chatlog, scroll_offset);
 
-    while(input != "/exit"){
+    // timing variables
+    const unsigned int STROBE_TIME = 2000; // something is wrong with the timing
+    unsigned int before_time = SDL_GetTicks(); // returns milliseconds
+
+    while(input != "/exit" && !sdl_close){
+
+        SDL_Event e;
+
+        while(SDL_PollEvent(&e)){
+
+            if(e.type == SDL_QUIT){
+
+                sdl_close = true;
+            }
+        }
+
+        SDL_SetRenderDrawColor(renderer, strobe_r, strobe_g, strobe_b, 255);
+        SDL_RenderClear(renderer);
+        SDL_RenderPresent(renderer);
 
         int refresh = 0;
         const int ALL = 1;
@@ -165,19 +212,52 @@ int main(int argc, char* argv[]){
 
         }else if(input != ""){
 
-            if(connected){
+            send_message(&chatlog, &strobe_message, input);
+            sysmessage(&chatlog, "New strobe message is: " + strobe_message);
+            /*if(connected){
 
-                send_message(&chatlog, &arduino_out, input);
+                send_message(&chatlog, &strobe_message, input);
+                before_time = SDL_GetTicks(); // start the strobe timer
 
             }else{
 
                 sysmessage(&chatlog, "Cannot send message! Device is not connected.");
-            }
+            }*/
         }
 
         // clear input buffer
         input = "";
 
+        unsigned int elapsed = SDL_GetTicks() - before_time;
+        if(elapsed >= STROBE_TIME){
+
+            if(strobe_message != ""){
+
+                char next = strobe_message.at(0);
+                if(next == '1'){
+
+                    strobe_r = 0;
+                    strobe_g = 255;
+                    strobe_b = 0;
+
+                }else if(next == '0'){
+
+                    strobe_r = 255;
+                    strobe_g = 0;
+                    strobe_b = 0;
+                }
+
+                strobe_message = strobe_message.substr(1, strobe_message.length() - 1);
+                if(strobe_message == ""){
+
+                    strobe_r = 0;
+                    strobe_g = 0;
+                    strobe_b = 0;
+                }
+
+                before_time = SDL_GetTicks() + (elapsed - STROBE_TIME);
+            }
+        }
         update(&chatlog); // we always call this so that we always update at a regular rate
 
         // always render last
@@ -197,6 +277,9 @@ int main(int argc, char* argv[]){
         }
     }
 
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
     endwin();
     return 0;
 }
@@ -330,11 +413,16 @@ bool attempt_connect(std::vector<std::string>* chatlog, Serial* arduino_out){
     return success;
 }
 
-void send_message(std::vector<std::string>* chatlog, Serial* arduino_out, std::string message){
+void send_message(std::vector<std::string>* chatlog, std::string* strobe_message, std::string message){
 
     char bitstring[4096];
     int bitstring_length = encode(message, bitstring);
-    arduino_out->write(bitstring, bitstring_length);
+    //arduino_out->write(bitstring, bitstring_length);
+
+    for(int i = 0; i < bitstring_length; i++){
+
+        *strobe_message += byte_to_binary(bitstring[i]);
+    }
 
     std::string prefix = "[" + current_time() + "] You: ";
     chatlog->push_back(prefix + message);
