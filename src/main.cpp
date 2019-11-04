@@ -1,5 +1,6 @@
 #ifdef _WIN32
     #include <ncurses/ncurses.h>
+    #define SDL_MAIN_HANDLED
 #else
     #include <ncurses.h>
 #endif
