@@ -47,7 +47,8 @@ int main(int argc, char* argv[]){
 
     // init ncurses
     initscr();
-    halfdelay(1);
+    //halfdelay(1);
+    nodelay(stdscr, TRUE);
     noecho();
     keypad(stdscr, TRUE);
 
