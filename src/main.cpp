@@ -100,14 +100,14 @@ int main(int argc, char* argv[]){
     render_all(in_progress, cursor_x, cursor_y, &chatlog, scroll_offset);
 
     // timing variables
-    const unsigned int STROBE_TIME = 2000; // something is wrong with the timing
+    const unsigned int STROBE_TIME = 100; // something is wrong with the timing
     unsigned int before_time = SDL_GetTicks(); // returns milliseconds
 
     while(input != "/exit" && !sdl_close){
 
         SDL_Event e;
 
-        while(SDL_PollEvent(&e)){
+        while(SDL_PollEvent(&e) != 0){
 
             if(e.type == SDL_QUIT){
 
@@ -256,9 +256,9 @@ int main(int argc, char* argv[]){
                     strobe_g = 0;
                     strobe_b = 0;
                 }
-
-                before_time = SDL_GetTicks() + (elapsed - STROBE_TIME);
             }
+
+            before_time = SDL_GetTicks() + (elapsed - STROBE_TIME);
         }
         update(&chatlog); // we always call this so that we always update at a regular rate
 
