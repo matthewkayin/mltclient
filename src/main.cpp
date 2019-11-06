@@ -63,6 +63,7 @@ int main(int argc, char* argv[]){
     SDL_Renderer* renderer = nullptr;
     std::string message;
     std::string strobe_message = "";
+    bool is_fullscreen = false;
     bool sdl_close = false;
     int strobe_r = 0;
     int strobe_b = 0;
@@ -111,6 +112,24 @@ int main(int argc, char* argv[]){
             if(e.type == SDL_QUIT){
 
                 sdl_close = true;
+
+            }else if(e.type == SDL_MOUSEBUTTONDOWN){
+
+                if(e.button.button == SDL_BUTTON_LEFT){
+
+                    if(is_fullscreen){
+
+                        SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "1");
+                        SDL_SetWindowFullscreen(window, 0);
+                        is_fullscreen = false;
+
+                    }else{
+
+                        SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
+                        SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
+                        is_fullscreen = true;
+                    }
+                }
             }
         }
 
