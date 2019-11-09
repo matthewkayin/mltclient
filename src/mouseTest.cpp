@@ -1,6 +1,7 @@
 #include <iostream>
 #include <SDL2/SDL.h>
 #define SDL_MAIN_HANDLED
+//compile with g++ mouseTest.cpp -lSDL2
 
 int WinMain(int argc, char* argv[]){
 
