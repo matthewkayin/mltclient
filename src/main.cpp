@@ -60,6 +60,8 @@ int main(int argc, char* argv[]){
     int cursor_x = 0;
     int cursor_y = separator_point() + 1;
     int scroll_offset = 0;
+    MEVENT mouse_event;
+    mousemask(BUTTON4_PRESSED | BUTTON5_PRESSED, NULL);
 
     // init sdl
     SDL_Window* window = nullptr;
@@ -221,6 +223,22 @@ int main(int argc, char* argv[]){
 
             scroll_offset = set_scroll(scroll_offset, chatlog.size(), 1);
             refresh = CHATBOX_ONLY;
+
+        }else if(key == KEY_MOUSE){
+
+            if(getmouse(&mouse_event) == OK){
+
+                if(mouse_event.bstate & BUTTON4_PRESSED){
+
+                    scroll_offset = set_scroll(scroll_offset, chatlog.size(), -1);
+                    refresh = CHATBOX_ONLY;
+
+                }else if(mouse_event.bstate & BUTTON5_PRESSED){
+
+                    scroll_offset = set_scroll(scroll_offset, chatlog.size(), 1);
+                    refresh = CHATBOX_ONLY;
+                }
+            }
 
         }else{
 
