@@ -403,11 +403,19 @@ int get_cursor_index(int cursor_x, int cursor_y){
 void render_chatlog(std::vector<std::string>* chatlog, int scroll_offset){
 
     // TODO incorporate scroll offset
+    unsigned int i = 0;
+    if (chatlog->size() > 25){
+        for (int i = 25; i < chatlog->size(); i++){
+            std::string message = chatlog->at(i);
+            mvaddstr((i%24), 0, message.c_str());
+        }
+    }
 
-    for(unsigned int i = 0; i < chatlog->size(); i++){
-
-        std::string message = chatlog->at(i);
-        mvaddstr(i, 0, message.c_str());
+    else{
+        for(unsigned int i = 0; i < chatlog->size(); i++){
+            std::string message = chatlog->at(i);
+            mvaddstr(i, 0, message.c_str());
+        }
     }
 }
 
