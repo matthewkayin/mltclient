@@ -14,7 +14,7 @@
 #include <ctime>
 
 // RENDERING FUNCTIONS
-void render_all(std::string in_progress, int cursor_x, int cursor_y, std::vector<std::string>* chatlog, int scroll_offset);
+void render_all(std::string in_progress, std::vector<std::string>* chatlog, int scroll_offset);
 void render_separator();
 void clear_textbox();
 void render_textbox(std::string in_progress);
@@ -100,7 +100,8 @@ int main(int argc, char* argv[]){
     Serial arduino_out;
     connected = attempt_connect(&chatlog, &arduino_out);
 
-    render_all(in_progress, cursor_x, cursor_y, &chatlog, scroll_offset);
+    render_all(in_progress, &chatlog, scroll_offset);
+    move(cursor_y, cursor_x);
 
     // timing variables
     const unsigned int STROBE_TIME = 100; // something is wrong with the timing
@@ -139,6 +140,9 @@ int main(int argc, char* argv[]){
         SDL_SetRenderDrawColor(renderer, strobe_r, strobe_g, strobe_b, 255);
         SDL_RenderClear(renderer);
         SDL_RenderPresent(renderer);
+
+        int old_chatlog_size = chatlog.size();
+        bool chatlog_at_bottom = scroll_offset == (int)chatlog.size() - chatlog_height() || (int)chatlog.size() < chatlog_height();
 
         int refresh = 0;
         const int ALL = 1;
@@ -261,6 +265,13 @@ int main(int argc, char* argv[]){
         // clear input buffer
         input = "";
 
+        // check if chatlog has been pushed to and we should scroll down
+        if(chatlog_at_bottom && old_chatlog_size < (int)chatlog.size() && (int)chatlog.size() > chatlog_height()){
+
+            scroll_offset = (int)chatlog.size() - chatlog_height();
+            refresh = ALL;
+        }
+
         unsigned int elapsed = SDL_GetTicks() - before_time;
         if(elapsed >= STROBE_TIME){
 
@@ -296,17 +307,20 @@ int main(int argc, char* argv[]){
         // always render last
         if(refresh == ALL){
 
-            render_all(in_progress, cursor_x, cursor_y, &chatlog, scroll_offset);
+            render_all(in_progress, &chatlog, scroll_offset);
 
         }else if(refresh == TEXTBOX_ONLY){
 
             clear_textbox();
             render_textbox(in_progress);
-            move(cursor_y, cursor_x);
 
         }else if(refresh == CHATBOX_ONLY){
 
             render_chatlog(&chatlog, scroll_offset);
+        }
+        if(refresh != 0){
+
+            move(cursor_y, cursor_x);
         }
     }
 
@@ -317,13 +331,12 @@ int main(int argc, char* argv[]){
     return 0;
 }
 
-void render_all(std::string in_progress, int cursor_x, int cursor_y, std::vector<std::string>* chatlog, int scroll_offset){
+void render_all(std::string in_progress, std::vector<std::string>* chatlog, int scroll_offset){
 
     clear();
     render_separator();
     render_textbox(in_progress);
     render_chatlog(chatlog, scroll_offset);
-    move(cursor_y, cursor_x);
 }
 
 void render_separator(){
@@ -428,9 +441,9 @@ int set_scroll(int scroll_offset, int chatlog_size, int ticks){
 
     int new_scroll_offset = scroll_offset + ticks;
 
-    if(new_scroll_offset > chatlog_size - (chatlog_height() - 1)){
+    if(new_scroll_offset > chatlog_size - chatlog_height()){
 
-        new_scroll_offset = chatlog_size - (chatlog_height() - 1);
+        new_scroll_offset = chatlog_size - chatlog_height();
     }
 
     if(new_scroll_offset < 0){
