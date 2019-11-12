@@ -31,9 +31,11 @@ int set_scroll(int scroll_offset, int chatlog_size, int ticks);
 
 // NON-UI FUNCTIONS
 void update(std::vector<std::string>* chatlog);
-bool attempt_connect(std::vector<std::string>* chatlog, Serial* arduino_out);
-void send_message(std::vector<std::string>* chatlog, std::string* strobe_message, std::string message);
-void sysmessage(std::vector<std::string>* chatlog, std::string message);
+bool attempt_connect(std::vector<std::string>* chatlines, std::vector<std::string>* chatlog, Serial* arduino_out);
+void send_message(std::vector<std::string>* chatlines, std::vector<std::string>* chatlog, std::string* strobe_message, std::string message);
+void sysmessage(std::vector<std::string>* chatlines, std::vector<std::string>* chatlog, std::string message);
+void append_chatlog(std::vector<std::string>* chatlines, std::vector<std::string>* chatlog, std::string entry);
+void reset_chatlines(std::vector<std::string>* chatlines, std::vector<std::string>* chatlog);
 
 int main(int argc, char* argv[]){
 
@@ -55,6 +57,7 @@ int main(int argc, char* argv[]){
     keypad(stdscr, TRUE);
 
     std::vector<std::string> chatlog;
+    std::vector<std::string> chatlines;
     std::string in_progress = "";
     std::string input = "";
     int cursor_x = 0;
@@ -88,21 +91,21 @@ int main(int argc, char* argv[]){
         message = "Error initializing strobe window, SDL Error: " + std::string(SDL_GetError());
     }
 
-    sysmessage(&chatlog, "Welcome to the Modulated Light Transceiver Client!");
-    sysmessage(&chatlog, "Type \"/exit\" to exit");
+    sysmessage(&chatlines, &chatlog, "Welcome to the Modulated Light Transceiver Client!");
+    sysmessage(&chatlines, &chatlog, "Type \"/exit\" to exit");
     if(debug){
 
-        sysmessage(&chatlog, "Debug mode is on");
+        sysmessage(&chatlines, &chatlog, "Debug mode is on");
     }
 
-    sysmessage(&chatlog, "Initializing...");
-    sysmessage(&chatlog, message);
+    sysmessage(&chatlines, &chatlog, "Initializing...");
+    sysmessage(&chatlines, &chatlog, message);
 
     bool connected = false;
     Serial arduino_out;
-    connected = attempt_connect(&chatlog, &arduino_out);
+    connected = attempt_connect(&chatlines, &chatlog, &arduino_out);
 
-    render_all(in_progress, &chatlog, scroll_offset);
+    render_all(in_progress, &chatlines, scroll_offset);
     move(cursor_y, cursor_x);
 
     // timing variables
@@ -143,8 +146,8 @@ int main(int argc, char* argv[]){
         SDL_RenderClear(renderer);
         SDL_RenderPresent(renderer);
 
-        int old_chatlog_size = chatlog.size();
-        bool chatlog_at_bottom = scroll_offset == (int)chatlog.size() - chatlog_height() || (int)chatlog.size() < chatlog_height();
+        int old_chatlines_size = chatlines.size();
+        bool chatlog_at_bottom = scroll_offset == (int)chatlines.size() - chatlog_height() || (int)chatlines.size() < chatlog_height();
 
         int refresh = 0;
         const int ALL = 1;
@@ -157,6 +160,7 @@ int main(int argc, char* argv[]){
 
         }else if(key == KEY_RESIZE){
 
+            reset_chatlines(&chatlines, &chatlog);
             refresh = ALL;
 
         }else if(key == 10){
@@ -216,13 +220,13 @@ int main(int argc, char* argv[]){
 
         }else if(key == KEY_UP){
 
-            scroll_offset = set_scroll(scroll_offset, chatlog.size(), -1);
-            refresh = CHATBOX_ONLY;
+            scroll_offset = set_scroll(scroll_offset, chatlines.size(), -1);
+            refresh = ALL;
 
         }else if(key == KEY_DOWN){
 
-            scroll_offset = set_scroll(scroll_offset, chatlog.size(), 1);
-            refresh = CHATBOX_ONLY;
+            scroll_offset = set_scroll(scroll_offset, chatlines.size(), 1);
+            refresh = ALL;
 
         }else if(key == KEY_MOUSE){
 
@@ -230,13 +234,13 @@ int main(int argc, char* argv[]){
 
                 if(mouse_event.bstate & BUTTON4_PRESSED){
 
-                    scroll_offset = set_scroll(scroll_offset, chatlog.size(), -1);
-                    refresh = CHATBOX_ONLY;
+                    scroll_offset = set_scroll(scroll_offset, chatlines.size(), -1);
+                    refresh = ALL;
 
                 }else if(mouse_event.bstate & BUTTON5_PRESSED){
 
-                    scroll_offset = set_scroll(scroll_offset, chatlog.size(), 1);
-                    refresh = CHATBOX_ONLY;
+                    scroll_offset = set_scroll(scroll_offset, chatlines.size(), 1);
+                    refresh = ALL;
                 }
             }
 
@@ -263,12 +267,12 @@ int main(int argc, char* argv[]){
 
         }else if(input == "/connect"){
 
-            connected = attempt_connect(&chatlog, &arduino_out);
+            connected = attempt_connect(&chatlines, &chatlog, &arduino_out);
 
         }else if(input != ""){
 
-            send_message(&chatlog, &strobe_message, input);
-            sysmessage(&chatlog, "New strobe message is: " + strobe_message);
+            send_message(&chatlines, &chatlog, &strobe_message, input);
+            sysmessage(&chatlines, &chatlog, "New strobe message is: " + strobe_message);
             /*if(connected){
 
                 send_message(&chatlog, &strobe_message, input);
@@ -284,9 +288,9 @@ int main(int argc, char* argv[]){
         input = "";
 
         // check if chatlog has been pushed to and we should scroll down
-        if(chatlog_at_bottom && old_chatlog_size < (int)chatlog.size() && (int)chatlog.size() > chatlog_height()){
+        if(chatlog_at_bottom && old_chatlines_size < (int)chatlines.size() && (int)chatlines.size() > chatlog_height()){
 
-            scroll_offset = (int)chatlog.size() - chatlog_height();
+            scroll_offset = (int)chatlines.size() - chatlog_height();
             refresh = ALL;
         }
 
@@ -325,7 +329,7 @@ int main(int argc, char* argv[]){
         // always render last
         if(refresh == ALL){
 
-            render_all(in_progress, &chatlog, scroll_offset);
+            render_all(in_progress, &chatlines, scroll_offset);
 
         }else if(refresh == TEXTBOX_ONLY){
 
@@ -334,7 +338,7 @@ int main(int argc, char* argv[]){
 
         }else if(refresh == CHATBOX_ONLY){
 
-            render_chatlog(&chatlog, scroll_offset);
+            render_chatlog(&chatlines, scroll_offset);
         }
         if(refresh != 0){
 
@@ -346,6 +350,7 @@ int main(int argc, char* argv[]){
     SDL_DestroyWindow(window);
     SDL_Quit();
     endwin();
+
     return 0;
 }
 
@@ -480,22 +485,22 @@ void update(std::vector<std::string>* chatlog){
     // You need to check elapsed time in between certain checks here
 }
 
-bool attempt_connect(std::vector<std::string>* chatlog, Serial* arduino_out){
+bool attempt_connect(std::vector<std::string>* chatlines, std::vector<std::string>* chatlog, Serial* arduino_out){
 
-    sysmessage(chatlog, "Attempting to find MLT...");
+    sysmessage(chatlines, chatlog, "Attempting to find MLT...");
     *arduino_out = Serial();
     std::string message = "";
     bool success = arduino_out->open(&message);
-    sysmessage(chatlog, message);
+    sysmessage(chatlines, chatlog, message);
     if(!success){
 
-        sysmessage(chatlog, "Ensure your device is connected and type \"/connect\" to try again.");
+        sysmessage(chatlines, chatlog, "Ensure your device is connected and type \"/connect\" to try again.");
     }
 
     return success;
 }
 
-void send_message(std::vector<std::string>* chatlog, std::string* strobe_message, std::string message){
+void send_message(std::vector<std::string>* chatlines, std::vector<std::string>* chatlog, std::string* strobe_message, std::string message){
 
     char bitstring[4096];
     int bitstring_length = encode(message, bitstring);
@@ -507,11 +512,111 @@ void send_message(std::vector<std::string>* chatlog, std::string* strobe_message
     }
 
     std::string prefix = "[" + current_time() + "] You: ";
-    chatlog->push_back(prefix + message);
+    append_chatlog(chatlines, chatlog, prefix + message);
 }
 
-void sysmessage(std::vector<std::string>* chatlog, std::string message){
+void sysmessage(std::vector<std::string>* chatlines, std::vector<std::string>* chatlog, std::string message){
 
     std::string to_push = "--- " + message + " ---";
-    chatlog->push_back(to_push);
+    append_chatlog(chatlines, chatlog, to_push);
+}
+
+void append_chatlog(std::vector<std::string>* chatlines, std::vector<std::string>* chatlog, std::string entry){
+
+    chatlog->push_back(entry);
+
+    /*while(entry != ""){
+
+        if((int)entry.length() >= COLS){
+
+            chatlines->push_back(entry.substr(0, COLS));
+            entry = entry.substr(COLS + 1, entry.length() - COLS);
+
+        }else{
+
+            chatlines->push_back(entry);
+            entry = "";
+        }
+    }*/
+
+    std::string next_line = "";
+    size_t pos = 0;
+    std::string word;
+    int remaining_chars = COLS;
+    while(entry != ""){
+
+        pos = entry.find(" ");
+        if(pos != std::string::npos){
+
+            word = entry.substr(0, pos);
+            entry.erase(0, pos + 1);
+
+        }else{
+
+            word = entry;
+            entry = "";
+        }
+
+        if((int)word.length() + 1 <= remaining_chars){
+
+            next_line += word + " ";
+            remaining_chars -= (int)word.length() + 1;
+
+        }else if((int)word.length() <= remaining_chars){
+
+            next_line += word;
+            chatlines->push_back(next_line);
+            next_line = "";
+            remaining_chars = COLS;
+
+        }else{
+
+            // if the word is super big, keep adding to it in as big of chunks as possible
+            if((int)word.length() >= COLS){
+
+                while(word != ""){
+
+                    int chunk_size = std::min(remaining_chars, (int)word.length());
+                    next_line += word.substr(0, chunk_size);
+                    word = word.substr(chunk_size, word.length() - chunk_size);
+                    remaining_chars -= chunk_size;
+                    if(remaining_chars == 0){
+
+                        chatlines->push_back(next_line);
+                        remaining_chars = COLS;
+                        next_line = "";
+
+                    }else{
+
+                        if(word != ""){
+
+                            chatlines->push_back("something is wrong with your algorithm fren");
+                        }
+                    }
+                }
+
+            }else{
+
+                chatlines->push_back(next_line);
+                next_line = "";
+                next_line += word + " ";
+                remaining_chars = COLS - (int)word.length() - 1;
+            }
+        }
+    }
+
+    if(next_line != ""){
+
+        chatlines->push_back(next_line);
+    }
+}
+
+void reset_chatlines(std::vector<std::string>* chatlines, std::vector<std::string>* chatlog){
+
+    chatlines->clear();
+    for(std::vector<std::string>::iterator it = chatlog->begin(); it != chatlog->end(); ++it){
+
+        std::string entry = (*it);
+        append_chatlog(chatlines, chatlog, entry);
+    }
 }
