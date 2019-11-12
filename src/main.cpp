@@ -27,6 +27,8 @@ int chatlog_height(); // returns chatlog height in number of rows
 std::string current_time(); // returns current time formatted in HH:MM (military time)
 int get_cursor_index(int cursor_x, int cursor_y); // gets the index of the string that the cursor is at
 
+int set_scroll(int scroll_offset, int chatlog_size, int ticks);
+
 // NON-UI FUNCTIONS
 void update(std::vector<std::string>* chatlog);
 bool attempt_connect(std::vector<std::string>* chatlog, Serial* arduino_out);
@@ -205,6 +207,16 @@ int main(int argc, char* argv[]){
                 }
                 move(cursor_y, cursor_x);
             }
+
+        }else if(key == KEY_UP){
+
+            scroll_offset = set_scroll(scroll_offset, chatlog.size(), -1);
+            refresh = CHATBOX_ONLY;
+
+        }else if(key == KEY_DOWN){
+
+            scroll_offset = set_scroll(scroll_offset, chatlog.size(), 1);
+            refresh = CHATBOX_ONLY;
 
         }else{
 
@@ -403,12 +415,30 @@ int get_cursor_index(int cursor_x, int cursor_y){
 void render_chatlog(std::vector<std::string>* chatlog, int scroll_offset){
 
     // TODO incorporate scroll offset
+    int lines_to_draw = std::min((int)chatlog->size(), chatlog_height());
 
-    for(unsigned int i = 0; i < chatlog->size(); i++){
+    for(int i = 0; i < lines_to_draw; i++){
 
-        std::string message = chatlog->at(i);
+        std::string message = chatlog->at(i + scroll_offset);
         mvaddstr(i, 0, message.c_str());
     }
+}
+
+int set_scroll(int scroll_offset, int chatlog_size, int ticks){
+
+    int new_scroll_offset = scroll_offset + ticks;
+
+    if(new_scroll_offset > chatlog_size - (chatlog_height() - 1)){
+
+        new_scroll_offset = chatlog_size - (chatlog_height() - 1);
+    }
+
+    if(new_scroll_offset < 0){
+
+        new_scroll_offset = 0;
+    }
+
+    return new_scroll_offset;
 }
 
 void update(std::vector<std::string>* chatlog){
