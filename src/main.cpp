@@ -12,6 +12,7 @@
 #include <cmath>
 #include <vector>
 #include <ctime>
+#include <chrono>
 
 // RENDERING FUNCTIONS
 void render_all(std::string in_progress, std::vector<std::string>* chatlog, int scroll_offset);
@@ -109,11 +110,20 @@ int main(int argc, char* argv[]){
     move(cursor_y, cursor_x);
 
     // timing variables
-    const unsigned int SECOND = 1000;
-    unsigned int TARGET_FPS = 30;
-    unsigned int STROBE_TIME = (int)(SECOND / TARGET_FPS);
-    unsigned int before_time = SDL_GetTicks(); // returns milliseconds
-    unsigned int before_sec = before_time;
+    //const unsigned int SECOND = 1000;
+    //unsigned int TARGET_FPS = 30;
+    //unsigned int STROBE_TIME = (int)(SECOND / TARGET_FPS);
+    //unsigned int before_time = SDL_GetTicks(); // returns milliseconds
+    //unsigned int before_sec = before_time;
+    
+    //chrono variables
+    const std::chrono::milliseconds SECOND (1000);
+    std::chrono::milliseconds TARGET_FPS (30);//milliseconds to make operations work
+    std::chrono::milliseconds STROBE_TIME = SECOND / TARGET_FPS;
+    std::chrono::high_resolution_clock::time_point before_time = std::chrono::high_resolution_clock::now();
+    std::chrono::high_resolution_clock::time_point before_sec = before_time;
+    
+
     int fps = 0;
     int frames = 0;
 
@@ -282,7 +292,7 @@ int main(int argc, char* argv[]){
 
             int index = input.find(" ") + 1;
             TARGET_FPS = std::stoi(input.substr(index, input.length() - index));
-            STROBE_TIME = (int)(SECOND / TARGET_FPS);
+            STROBE_TIME = SECOND.count() / TARGET_FPS;
             sysmessage(&chatlines, &chatlog, "Target FPS is now " + std::to_string(TARGET_FPS) + " and strobe time is " + std::to_string(STROBE_TIME));
 
         }else if((int)input.length() > 0 && input.at(0) == '/'){
@@ -315,9 +325,10 @@ int main(int argc, char* argv[]){
             refresh = ALL;
         }
 
-        unsigned int after_time = SDL_GetTicks();
-        unsigned int elapsed = after_time - before_time;
-        if(elapsed >= STROBE_TIME){
+        std::chrono::high_resolution_clock::time_point after_time = std::chrono::high_resolution_clock::now();
+
+        std::chrono::duration<double, std::milli> elapsed = after_time - before_time;
+        if(elapsed.count() >= STROBE_TIME){
 
             if(strobe_message != ""){
 
@@ -345,14 +356,14 @@ int main(int argc, char* argv[]){
             }
 
             frames++;
-            before_time = SDL_GetTicks() + (elapsed - STROBE_TIME);
+            before_time = std::chrono::high_resolution_clock::now() + (elapsed - std::chrono::duration_cast<>STROBE_TIME);
         }
-        unsigned int sec_elapsed = after_time - before_sec;
-        if(sec_elapsed >= SECOND){
+        unsigned int sec_elapsed = elapsed.count();
+        if(sec_elapsed >= SECOND.count()){
 
             fps = frames;
             frames = 0;
-            before_sec = SDL_GetTicks() + (sec_elapsed - SECOND);
+            before_sec = std::chrono::high_resolution_clock::now() + (sec_elapsed - SECOND);
         }
 
         update(&chatlog); // we always call this so that we always update at a regular rate
