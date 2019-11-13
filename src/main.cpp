@@ -283,7 +283,7 @@ int main(int argc, char* argv[]){
             int index = input.find(" ") + 1;
             TARGET_FPS = std::stoi(input.substr(index, input.length() - index));
             STROBE_TIME = (int)(SECOND / TARGET_FPS);
-            sysmessage(&chatlines, &chatlog, "Target FPS is now " + std::to_string(TARGET_FPS));
+            sysmessage(&chatlines, &chatlog, "Target FPS is now " + std::to_string(TARGET_FPS) + " and strobe time is " + std::to_string(STROBE_TIME));
 
         }else if((int)input.length() > 0 && input.at(0) == '/'){
 
@@ -352,7 +352,7 @@ int main(int argc, char* argv[]){
 
             fps = frames;
             frames = 0;
-            before_sec = before_time;
+            before_sec = SDL_GetTicks() + (sec_elapsed - SECOND);
         }
 
         update(&chatlog); // we always call this so that we always update at a regular rate
