@@ -91,6 +91,10 @@ int main(int argc, char* argv[]){
         message = "Error initializing strobe window, SDL Error: " + std::string(SDL_GetError());
     }
 
+    SDL_SetRenderDrawColor(renderer, strobe_r, strobe_g, strobe_b, 255);
+    SDL_RenderClear(renderer);
+    SDL_RenderPresent(renderer);
+
     sysmessage(&chatlines, &chatlog, "Welcome to the Modulated Light Transceiver Client!");
     sysmessage(&chatlines, &chatlog, "Type \"/exit\" to exit");
     if(debug){
@@ -114,7 +118,7 @@ int main(int argc, char* argv[]){
     unsigned int STROBE_TIME = (int)(SECOND / TARGET_FPS);
     unsigned int before_time = SDL_GetTicks(); // returns milliseconds
     unsigned int before_sec = before_time;
-    int fps = 0;
+    double fps = 0;
     int frames = 0;
 
     while(input != "/exit" && !sdl_close){
@@ -146,10 +150,6 @@ int main(int argc, char* argv[]){
                 }
             }
         }
-
-        SDL_SetRenderDrawColor(renderer, strobe_r, strobe_g, strobe_b, 255);
-        SDL_RenderClear(renderer);
-        SDL_RenderPresent(renderer);
 
         int old_chatlines_size = chatlines.size();
         bool chatlog_at_bottom = scroll_offset == (int)chatlines.size() - chatlog_height() || (int)chatlines.size() < chatlog_height();
@@ -276,7 +276,7 @@ int main(int argc, char* argv[]){
 
         }else if(input == "/showfps"){
 
-            sysmessage(&chatlines, &chatlog, "Last FPS was " + std::to_string(fps));
+            sysmessage(&chatlines, &chatlog, "FPS is set to " + std::to_string(TARGET_FPS) + ", last FPS was " + std::to_string(fps));
 
         }else if(input.find("/setfps ") == 0){
 
@@ -291,7 +291,53 @@ int main(int argc, char* argv[]){
 
         }else if(input != ""){
 
-            strobe_message += "1010";
+            strobe_message += "101010101010101010101010101010";
+            before_time = SDL_GetTicks();
+            before_sec = before_time;
+            frames = 0;
+            while(strobe_message != ""){
+
+                unsigned int after_time = SDL_GetTicks();
+                unsigned int elapsed = after_time - before_time;
+
+                if(elapsed >= STROBE_TIME){
+
+                    char next = strobe_message.at(0);
+                    if(next == '1'){
+
+                        strobe_r = 0;
+                        strobe_g = 255;
+                        strobe_b = 0;
+
+                    }else if(next == '0'){
+
+                        strobe_r = 255;
+                        strobe_g = 0;
+                        strobe_b = 0;
+                    }
+
+                    SDL_SetRenderDrawColor(renderer, strobe_r, strobe_g, strobe_b, 255);
+                    SDL_RenderClear(renderer);
+                    SDL_RenderPresent(renderer);
+
+                    strobe_message = strobe_message.substr(1, strobe_message.length() - 1);
+                    frames++;
+                    before_time = SDL_GetTicks() + (elapsed - STROBE_TIME);
+                }
+            }
+            strobe_r = 0;
+            strobe_g = 0;
+            strobe_b = 0;
+            SDL_SetRenderDrawColor(renderer, strobe_r, strobe_g, strobe_b, 255);
+            SDL_RenderClear(renderer);
+            SDL_RenderPresent(renderer);
+            unsigned int after_time = SDL_GetTicks();
+            unsigned int total_elapsed = after_time - before_sec;
+            sysmessage(&chatlines, &chatlog, "total milliseconds=" + std::to_string(total_elapsed));
+            double seconds = (double)total_elapsed / (double)SECOND;
+            fps = frames / seconds;
+            sysmessage(&chatlines, &chatlog, "rendered " + std::to_string(frames) + " frames in " + std::to_string(seconds) + " seconds");
+
             //send_message(&chatlines, &chatlog, &strobe_message, input);
             //sysmessage(&chatlines, &chatlog, "New strobe message is: " + strobe_message);
             /*if(connected){
@@ -313,46 +359,6 @@ int main(int argc, char* argv[]){
 
             scroll_offset = (int)chatlines.size() - chatlog_height();
             refresh = ALL;
-        }
-
-        unsigned int after_time = SDL_GetTicks();
-        unsigned int elapsed = after_time - before_time;
-        if(elapsed >= STROBE_TIME){
-
-            if(strobe_message != ""){
-
-                char next = strobe_message.at(0);
-                if(next == '1'){
-
-                    strobe_r = 0;
-                    strobe_g = 255;
-                    strobe_b = 0;
-
-                }else if(next == '0'){
-
-                    strobe_r = 255;
-                    strobe_g = 0;
-                    strobe_b = 0;
-                }
-
-                strobe_message = strobe_message.substr(1, strobe_message.length() - 1);
-
-            }else{
-
-                strobe_r = 0;
-                strobe_g = 0;
-                strobe_b = 0;
-            }
-
-            frames++;
-            before_time = SDL_GetTicks() + (elapsed - STROBE_TIME);
-        }
-        unsigned int sec_elapsed = after_time - before_sec;
-        if(sec_elapsed >= SECOND){
-
-            fps = frames;
-            frames = 0;
-            before_sec = SDL_GetTicks() + (sec_elapsed - SECOND);
         }
 
         update(&chatlog); // we always call this so that we always update at a regular rate
