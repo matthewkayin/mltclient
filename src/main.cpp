@@ -285,23 +285,46 @@ int main(int argc, char* argv[]){
             STROBE_TIME = (int)(SECOND / TARGET_FPS);
             sysmessage(&chatlines, &chatlog, "Target FPS is now " + std::to_string(TARGET_FPS) + " and strobe time is " + std::to_string(STROBE_TIME));
 
+        }else if(input == "/setred"){
+
+            strobe_r = 255;
+            strobe_g = 0;
+            strobe_b = 0;
+            SDL_SetRenderDrawColor(renderer, strobe_r, strobe_g, strobe_b, 255);
+            SDL_RenderClear(renderer);
+            SDL_RenderPresent(renderer);
+
+        }else if(input == "/setgreen"){
+
+            strobe_r = 0;
+            strobe_g = 255;
+            strobe_b = 0;
+            SDL_SetRenderDrawColor(renderer, strobe_r, strobe_g, strobe_b, 255);
+            SDL_RenderClear(renderer);
+            SDL_RenderPresent(renderer);
+
         }else if((int)input.length() > 0 && input.at(0) == '/'){
 
             sysmessage(&chatlines, &chatlog, "Error! Command not recognized.");
 
         }else if(input != ""){
 
-            strobe_message += "101010101010101010101010101010";
+            //strobe_message += "101010101010101010101010101010";
+            strobe_message += "10101010";
             before_time = SDL_GetTicks();
             before_sec = before_time;
             frames = 0;
-            while(strobe_message != ""){
+            while(true){
 
                 unsigned int after_time = SDL_GetTicks();
                 unsigned int elapsed = after_time - before_time;
 
                 if(elapsed >= STROBE_TIME){
 
+                    if(strobe_message == ""){
+
+                        break;
+                    }
                     char next = strobe_message.at(0);
                     if(next == '1'){
 
