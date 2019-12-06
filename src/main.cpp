@@ -114,7 +114,7 @@ int main(int argc, char* argv[]){
 
     // timing variables
     const unsigned int SECOND = 1000;
-    unsigned int TARGET_FPS = 30;
+    unsigned int TARGET_FPS = 5;
     unsigned int STROBE_TIME = (int)(SECOND / TARGET_FPS);
     unsigned int before_time = SDL_GetTicks(); // returns milliseconds
     unsigned int before_sec = before_time;
@@ -310,7 +310,8 @@ int main(int argc, char* argv[]){
         }else if(input != ""){
 
             //strobe_message += "101010101010101010101010101010";
-            strobe_message += "10101010";
+            //strobe_message += "10101010";
+            strobe_message = encode(input);
             before_time = SDL_GetTicks();
             before_sec = before_time;
             frames = 0;
@@ -562,14 +563,14 @@ bool attempt_connect(std::vector<std::string>* chatlines, std::vector<std::strin
 
 void send_message(std::vector<std::string>* chatlines, std::vector<std::string>* chatlog, std::string* strobe_message, std::string message){
 
-    char bitstring[4096];
-    int bitstring_length = encode(message, bitstring);
+    //char bitstring[4096];
+    //int bitstring_length = encode(message, bitstring);
     //arduino_out->write(bitstring, bitstring_length);
 
-    for(int i = 0; i < bitstring_length; i++){
+    //for(int i = 0; i < bitstring_length; i++){
 
-        *strobe_message += byte_to_binary(bitstring[i]);
-    }
+     //   *strobe_message += byte_to_binary(bitstring[i]);
+    //}
 
     std::string prefix = "[" + current_time() + "] You: ";
     append_chatlog(chatlines, chatlog, prefix + message);
